@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:iso_datetime/app_theme.dart';
+import 'package:iso_datetime/date_time_extension.dart';
 
 void main() {
   runApp(const MyApp());
@@ -14,7 +14,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'ISO 8601 Date and time format',
       themeMode: ThemeMode.dark,
-      darkTheme: const AppTheme(TextTheme()).darkMediumContrast(),
+      theme: const AppTheme(TextTheme()).light(),
+      darkTheme: const AppTheme(TextTheme()).dark(),
       home: const HomeScreen(),
     );
   }
@@ -28,12 +29,26 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  DateTime _dateTime = DateTime.now();
+  late DateTime _dateTime;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _dateTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      now.hour,
+      now.minute,
+      now.second,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final timeZoneName = _dateTime.timeZoneName;
-    final timeZoneOffset = _dateTime.timeZoneOffset.inHours;
+    final timeZoneOffsetSuffix = _dateTime.timeZoneOffsetSuffix();
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -41,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
             constraints: const BoxConstraints(maxWidth: 480),
             padding: const EdgeInsets.all(16),
             child: Column(
-              spacing: 24,
+              spacing: 16,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
@@ -51,23 +66,28 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   textAlign: TextAlign.center,
                 ),
-
+                const Divider(),
+                _buildTile(
+                  title: 'Local TimeZone:',
+                  value: '$timeZoneName (UTC$timeZoneOffsetSuffix)',
+                ),
+                _buildTile(
+                  title: 'Local Time:',
+                  value: _dateTime.toLocal().toIso8601StringWithOffset(),
+                ),
+                _buildTile(
+                  title: 'UTC Time:',
+                  value: _dateTime.toUtc().toIso8601String(),
+                ),
+                _buildTile(
+                  title: 'Seconds since Epoch:',
+                  value: (_dateTime.millisecondsSinceEpoch / 1000).toString(),
+                ),
                 Center(
                   child: FilledButton(
                     onPressed: onTapSelect,
                     child: const Text('Select Date and Time'),
                   ),
-                ),
-
-                buildSelectableField(
-                  title:
-                      'Local: $timeZoneName (UTC${timeZoneOffset.isNegative ? '' : '+'}$timeZoneOffset)',
-                  value: _dateTime.toLocal().toIso8601String(),
-                ),
-
-                buildSelectableField(
-                  title: 'UTC',
-                  value: _dateTime.toUtc().toIso8601String(),
                 ),
               ],
             ),
@@ -77,76 +97,26 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget buildSelectableField({
+  Widget _buildTile({
     required String title,
     required String value,
   }) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 320),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              title,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: Theme.of(context).colorScheme.secondary,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                color: Theme.of(context).colorScheme.surfaceContainerHigh,
-              ),
-              padding: const EdgeInsets.fromLTRB(24, 8, 8, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: SelectableText(
-                      value,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.tertiary,
-                      ),
-                      textAlign: TextAlign.start,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      copyToClipboard(value);
-                    },
-                    icon: const Icon(
-                      Icons.copy,
-                      size: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+    return Row(
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Theme.of(context).colorScheme.secondary,
+          ),
         ),
-      ),
-    );
-  }
-
-  void copyToClipboard(String text) {
-    Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Row(
-          spacing: 8,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.check_circle,
-              color: Colors.green,
-            ),
-            Text('Copied!'),
-          ],
+        const SizedBox(width: 8),
+        SelectableText(
+          value,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Theme.of(context).colorScheme.tertiary,
+          ),
         ),
-      ),
+      ],
     );
   }
 

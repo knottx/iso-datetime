@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:iso_datetime/app_theme.dart';
 import 'package:iso_datetime/date_time_extension.dart';
 
 void main() {
@@ -14,8 +13,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'ISO 8601 Date and time format',
       themeMode: ThemeMode.dark,
-      theme: const AppTheme(TextTheme()).light(),
-      darkTheme: const AppTheme(TextTheme()).dark(),
+      theme: ThemeData.light(),
+      darkTheme: ThemeData.dark(),
       home: const HomeScreen(),
     );
   }
@@ -34,19 +33,16 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
-    _dateTime = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      now.hour,
-      now.minute,
-      now.second,
-    );
+    _dateTime = DateTime.now();
   }
 
   @override
   Widget build(BuildContext context) {
+    final secondsSinceEpoch = (_dateTime.millisecondsSinceEpoch ~/ 1000)
+        .toString();
+    final millisecondsSinceEpoch = _dateTime.millisecondsSinceEpoch.toString();
+    final microsecondsSinceEpoch = _dateTime.microsecondsSinceEpoch.toString();
+
     final timeZoneName = _dateTime.timeZoneName;
     final timeZoneOffsetSuffix = _dateTime.timeZoneOffsetSuffix();
     return Scaffold(
@@ -68,6 +64,27 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const Divider(),
                 _buildTile(
+                  title:
+                      'Seconds since Epoch (${secondsSinceEpoch.length} digits):',
+                  value: secondsSinceEpoch,
+                ),
+                _buildTile(
+                  title:
+                      'Milliseconds since Epoch (${millisecondsSinceEpoch.length} digits):',
+                  value: millisecondsSinceEpoch,
+                ),
+                _buildTile(
+                  title:
+                      'Microseconds since Epoch (${microsecondsSinceEpoch.length} digits):',
+                  value: microsecondsSinceEpoch,
+                ),
+                const Divider(),
+                _buildTile(
+                  title: 'UTC Time:',
+                  value: _dateTime.toUtc().toIso8601String(),
+                ),
+                const Divider(),
+                _buildTile(
                   title: 'Local TimeZone:',
                   value: '$timeZoneName (UTC$timeZoneOffsetSuffix)',
                 ),
@@ -75,18 +92,22 @@ class _HomeScreenState extends State<HomeScreen> {
                   title: 'Local Time:',
                   value: _dateTime.toLocal().toIso8601StringWithOffset(),
                 ),
-                _buildTile(
-                  title: 'UTC Time:',
-                  value: _dateTime.toUtc().toIso8601String(),
-                ),
-                _buildTile(
-                  title: 'Seconds since Epoch:',
-                  value: (_dateTime.millisecondsSinceEpoch / 1000).toString(),
-                ),
                 Center(
-                  child: FilledButton(
-                    onPressed: onTapSelect,
-                    child: const Text('Select Date and Time'),
+                  child: Row(
+                    spacing: 16,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: onTapNow,
+                        label: const Text('Now'),
+                        icon: const Icon(Icons.sync),
+                      ),
+                      FilledButton.tonalIcon(
+                        onPressed: onTapEdit,
+                        icon: const Icon(Icons.edit),
+                        label: const Text('Select Local Date & Time'),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -101,26 +122,27 @@ class _HomeScreenState extends State<HomeScreen> {
     required String title,
     required String value,
   }) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
           title,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
             color: Theme.of(context).colorScheme.secondary,
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(height: 4),
         SelectableText(
           value,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.tertiary,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: Theme.of(context).colorScheme.primary,
           ),
         ),
       ],
     );
   }
 
-  void onTapSelect() async {
+  void onTapEdit() async {
     final now = DateTime.now();
     final dateResult = await showDatePicker(
       context: context,
@@ -154,5 +176,11 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     }
+  }
+
+  void onTapNow() {
+    setState(() {
+      _dateTime = DateTime.now();
+    });
   }
 }
